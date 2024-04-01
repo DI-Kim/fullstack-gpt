@@ -5,4 +5,13 @@
 3. make requirements.txt for matching same version of libraries
 4. `pip install -r requirements.txt`
 
-exit virtual environment `deactivate`
+## exit virtual environment `deactivate`
+
+---
+
+### Streamlit
+
+run streamlit
+
+1. `source env/bin/activate`
+2. `streamlit run <Filename>` | ex) `streamlit run Home.py`
