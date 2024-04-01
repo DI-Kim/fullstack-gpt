@@ -1,23 +1,20 @@
 import streamlit as st
-from datetime import datetime
 
-#! data 에 관련된 것은 바뀔 때마다 페이지 전체가 refresh 된다.
+st.set_page_config(page_icon="🤖", page_title="FullstackGPT | Home")
+st.title("FullstackGPT | Home")
 
-today = datetime.today().strftime("%H:%M:%S")
+with st.sidebar:
+    st.title("sidebar title")
+    st.text_input("something")
 
-st.title(today)
 
-model = st.selectbox("Choose your model", ("GPT-3", "GPT-4"))
+tab_one, tab_two, tab_three = st.tabs(["A", "B", "C"])
 
-if model == "GPT-3":
-    st.write("cheap")
-else:
-    st.write("expensive")
+with tab_one:
+    st.write("a")
 
-name = st.text_input("What is your name?")
+with tab_two:
+    st.write("b")
 
-st.write(name)
-
-value = st.slider("temperature", min_value=0.1, max_value=1.0)
-
-st.write(value)
+with tab_three:
+    st.write("c")
