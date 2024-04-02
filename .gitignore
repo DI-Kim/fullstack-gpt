@@ -30,3 +30,4 @@ env/
 .env
 
 .cache/
+.streamlit
