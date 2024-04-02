@@ -11,6 +11,7 @@ st.set_page_config(page_icon="📃", page_title="DocumentGPT")
 st.title("DocumentGPT")
 
 
+@st.cache_data(show_spinner="Embedding file...")
 def embed_file(file):
     file_content = file.read()
     file_path = f"./.cache/files/{file.name}"
@@ -24,7 +25,7 @@ def embed_file(file):
         chunk_size=600,
         chunk_overlap=100,
     )
-    loader = UnstructuredFileLoader("./files/chapter_one.docx")
+    loader = UnstructuredFileLoader(file_path)
     docs = loader.load_and_split(text_splitter=splitter)
     embeddings = OpenAIEmbeddings()
     # 캐시가 저장되어 있는지 확인
@@ -35,6 +36,22 @@ def embed_file(file):
     return retriever
 
 
+def send_message(message, role, save=True):
+    with st.chat_message(role):
+        st.markdown(message)
+    if save:
+        st.session_state["messages"].append({"message": message, "role": role})
+
+
+def paint_history():
+    for message in st.session_state["messages"]:
+        send_message(
+            message["message"],
+            message["role"],
+            save=False,
+        )
+
+
 st.markdown(
     """
 WELCOME
@@ -42,11 +59,17 @@ WELCOME
             Use this chatbot to ask questions to an AI about your files!
 """
 )
-
-file = st.file_uploader("Upload a .txt .pdf or .docx file", type=["pdf", "txt", "docx"])
+with st.sidebar:
+    file = st.file_uploader(
+        "Upload a .txt .pdf or .docx file", type=["pdf", "txt", "docx"]
+    )
 
 if file:
-
     retriver = embed_file(file)
-    s = retriver.invoke("winston")
-    s
+    send_message("I'm ready! Ask away!", role="ai", save=False)
+    paint_history()
+    message = st.chat_input("Ask anything about your file...")
+    if message:
+        send_message(message, "human")
+else:
+    st.session_state["messages"] = []
