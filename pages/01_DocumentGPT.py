@@ -82,6 +82,7 @@ if st.session_state["api"]:
             chunk_size=600,
             chunk_overlap=100,
         )
+
         loader = UnstructuredFileLoader(file_path)
         docs = loader.load_and_split(text_splitter=splitter)
         embeddings = OpenAIEmbeddings()
