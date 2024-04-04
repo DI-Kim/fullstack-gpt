@@ -104,25 +104,28 @@ if not st.session_state["api"]:
         st.session_state["api"] = st.text_input("Write your openAI API Key.")
         st.write(st.session_state["api"])
 
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """
-    You are a helpful assistant. Answer the question using ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
 
-      Context: {context}
-    """,
-            ),
-            MessagesPlaceholder(variable_name="history"),
-            ("human", "{question}"),
-        ]
-    )
+else:
     llm = ChatOpenAI(
         temperature=0.1,
         streaming=True,
         callbacks=[ChatCallbackHandler()],
         openai_api_key=st.session_state["api"],
+    )
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """
+You are a helpful assistant. Answer the question using ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
+
+  Context: {context}
+""",
+            ),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", "{question}"),
+        ]
     )
 
     st.markdown(
