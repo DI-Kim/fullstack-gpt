@@ -106,7 +106,7 @@ if not st.session_state["api"]:
 
 
 if st.session_state["api"]:
-    st.write(st.session_state["api"])
+    st.write(type(st.session_state["api"]))
     llm = ChatOpenAI(
         temperature=0.1,
         streaming=True,
