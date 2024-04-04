@@ -99,10 +99,14 @@ st.set_page_config(page_icon="📃", page_title="DocumentGPT")
 st.title("DocumentGPT")
 
 st.session_state["api"] = ""
-# if not st.session_state["api"]:
+if not st.session_state["api"]:
+    with st.sidebar:
+        st.session_state["api"] = st.text_input("Write your openAI API Key.")
+        st.write(st.session_state["api"])
 
 
 if st.session_state["api"]:
+    st.write(st.session_state["api"])
     llm = ChatOpenAI(
         temperature=0.1,
         streaming=True,
@@ -162,7 +166,3 @@ You are a helpful assistant. Answer the question using ONLY the following contex
 
     else:
         st.session_state["messages"] = []
-else:
-    with st.sidebar:
-        st.session_state["api"] = st.text_input("Write your openAI API Key.")
-        st.write(st.session_state["api"])
