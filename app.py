@@ -13,6 +13,87 @@ import openai
 from langchain.memory import ConversationBufferMemory
 
 
+# 어떤 행동이 일어난 다음 실행되는 말 그대로 callback handler
+class ChatCallbackHandler(BaseCallbackHandler):
+    message = ""
+
+    # llm 시작 시 message를 저장할 message_box를 생성한다.
+    def on_llm_start(self, *args, **kwargs):
+        self.message_box = st.empty()
+
+    # llm 끝날 시, 메세지를 session_state에 저장한다.
+    def on_llm_end(self, *args, **kwargs):
+        save_message(self.message, "ai")
+
+    # 토큰이 생길때마다, 메세지에 토큰을 넣고, 메세지 박스에 넣는다.(출력)
+    def on_llm_new_token(self, token, *args, **kwargs):
+        self.message += token
+        self.message_box.markdown(self.message)
+
+
+# 데코레이터: cache에 저장하고 불필요한 재실행을 방지한다. file이 바뀐 걸 파악하여 재실행한다.
+@st.cache_data(show_spinner="Embedding file...")
+def embed_file(file):
+    # 올린 파일을 읽고 저장.
+    file_content = file.read()
+    file_path = f"./.cache/files/{file.name}"
+    with open(file_path, "wb") as f:
+        f.write(file_content)
+
+    cache_dir = LocalFileStore(f"./.cache/embeddings/{file.name}")
+
+    splitter = CharacterTextSplitter.from_tiktoken_encoder(
+        separator="\n",
+        chunk_size=600,
+        chunk_overlap=100,
+    )
+    loader = UnstructuredFileLoader(file_path)
+    docs = loader.load_and_split(text_splitter=splitter)
+    embeddings = OpenAIEmbeddings()
+    vectorstore = FAISS.from_documents(docs, embeddings)
+
+    retriever = vectorstore.as_retriever()
+    return retriever
+
+
+def save_message(message, role):
+    st.session_state["messages"].append({"message": message, "role": role})
+
+
+def send_message(message, role, save=True):
+    with st.chat_message(role):
+        st.markdown(message)
+    if save:
+        save_message(message, role)
+
+
+def paint_history():
+    for message in st.session_state["messages"]:
+        send_message(
+            message["message"],
+            message["role"],
+            save=False,
+        )
+
+
+def pain_memory_history():
+    for content in memory.load_memory_variables({})["history"]:
+        st.write(content)
+
+
+def format_docs(docs):
+    return "\n\n".join(document.page_content for document in docs)
+
+
+def load_memory(input):
+    return memory.load_memory_variables({})["history"]
+
+
+def invoke_chain(question):
+    result = chain.invoke(question)
+    memory.save_context({"input": question}, {"output": result.content})
+
+
 memory = ConversationBufferMemory(return_messages=True)
 
 st.set_page_config(page_icon="📃", page_title="DocumentGPT")
@@ -27,24 +108,6 @@ with st.sidebar:
         st.write("Your API key: ", st.session_state["api"])
 
 if st.session_state["api"]:
-
-    # 어떤 행동이 일어난 다음 실행되는 말 그대로 callback handler
-    class ChatCallbackHandler(BaseCallbackHandler):
-        message = ""
-
-        # llm 시작 시 message를 저장할 message_box를 생성한다.
-        def on_llm_start(self, *args, **kwargs):
-            self.message_box = st.empty()
-
-        # llm 끝날 시, 메세지를 session_state에 저장한다.
-        def on_llm_end(self, *args, **kwargs):
-            save_message(self.message, "ai")
-
-        # 토큰이 생길때마다, 메세지에 토큰을 넣고, 메세지 박스에 넣는다.(출력)
-        def on_llm_new_token(self, token, *args, **kwargs):
-            self.message += token
-            self.message_box.markdown(self.message)
-
     llm = ChatOpenAI(
         temperature=0.1,
         streaming=True,
@@ -57,71 +120,15 @@ if st.session_state["api"]:
             (
                 "system",
                 """
-  Answer the question using ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
-  
-      
+    You are a helpful assistant. Answer the question using ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
+
       Context: {context}
-  """,
+    """,
             ),
             MessagesPlaceholder(variable_name="history"),
             ("human", "{question}"),
         ]
     )
-
-    # 데코레이터: cache에 저장하고 불필요한 재실행을 방지한다. file이 바뀐 걸 파악하여 재실행한다.
-    @st.cache_data(show_spinner="Embedding file...")
-    def embed_file(file):
-        # 올린 파일을 읽고 저장.
-        file_content = file.read()
-        file_path = f"./.cache/files/{file.name}"
-        with open(file_path, "wb") as f:
-            f.write(file_content)
-
-        cache_dir = LocalFileStore(f"./.cache/embeddings/{file.name}")
-
-        splitter = CharacterTextSplitter.from_tiktoken_encoder(
-            separator="\n",
-            chunk_size=600,
-            chunk_overlap=100,
-        )
-        loader = UnstructuredFileLoader(file_path)
-        docs = loader.load_and_split(text_splitter=splitter)
-        embeddings = OpenAIEmbeddings()
-        # 캐시가 저장되어 있는지 확인
-        # 저장되어 있으면 캐시에서 가져오고, 저장되어있지 않으면 캐시로 저장함
-        cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
-            embeddings, cache_dir
-        )
-        vectorstore = FAISS.from_documents(docs, cached_embeddings)
-        retriever = vectorstore.as_retriever()
-        return retriever
-
-    def save_message(message, role):
-        st.session_state["messages"].append({"message": message, "role": role})
-
-    def send_message(message, role, save=True):
-        with st.chat_message(role):
-            st.markdown(message)
-        if save:
-            save_message(message, role)
-
-    def paint_history():
-        for message in st.session_state["messages"]:
-            send_message(
-                message["message"],
-                message["role"],
-                save=False,
-            )
-
-    def pain_memory_history():
-        for content in memory.load_memory_variables({})["history"]:
-            st.write(content)
-
-    def format_docs(docs):
-        return "\n\n".join(document.page_content for document in docs)
-
-    def load_memory(input):
-        return memory.load_memory_variables({})["history"]
 
     st.markdown(
         """
@@ -163,8 +170,7 @@ if st.session_state["api"]:
                 | llm
             )
             with st.chat_message("ai"):
-                result = chain.invoke(message)
-                memory.save_context({"input": message}, {"output": result.content})
+                invoke_chain(message)
 
     # 파일을 올리지 않거나 내렸으면,
     else:
