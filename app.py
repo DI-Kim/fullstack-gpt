@@ -22,10 +22,7 @@ st.session_state["api"] = ""
 with st.sidebar:
     if not st.session_state["api"]:
         st.session_state["api"] = st.text_input("Write your openAI API Key.")
-
-        os.environ["OPEN_API_KEY"] = st.session_state["api"]
-        openai.api_key = st.session_state["api"]
-        # st.write(st.session_state["api"])
+        st.write(st.session_state["api"])
     else:
         st.write("Your API key: ", st.session_state["api"])
 
@@ -48,7 +45,12 @@ if st.session_state["api"]:
             self.message += token
             self.message_box.markdown(self.message)
 
-    llm = ChatOpenAI(temperature=0.1, streaming=True, callbacks=[ChatCallbackHandler()])
+    llm = ChatOpenAI(
+        temperature=0.1,
+        streaming=True,
+        callbacks=[ChatCallbackHandler()],
+        api_key=st.session_state["api"],
+    )
 
     prompt = ChatPromptTemplate.from_messages(
         [
