@@ -9,10 +9,9 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.callbacks.base import BaseCallbackHandler
 import os
-import openai
 from langchain.memory import ConversationBufferMemory
 
-os.makedirs(f"./..cache/files/", exist_ok=True)
+os.makedirs(f"./.cache/files/", exist_ok=True)
 
 
 class ChatCallbackHandler(BaseCallbackHandler):
