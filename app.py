@@ -110,7 +110,7 @@ if st.session_state["api"]:
         temperature=0.1,
         streaming=True,
         callbacks=[ChatCallbackHandler()],
-        api_key=st.session_state["api"],
+        openai_api_key=st.session_state["api"],
     )
 
     prompt = ChatPromptTemplate.from_messages(
