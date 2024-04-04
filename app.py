@@ -132,6 +132,7 @@ if st.session_state["api"]:
         file = st.file_uploader(
             "Upload a .txt .pdf or .docx file", type=["pdf", "txt", "docx"]
         )
+        st.write("repo: https://github.com/DI-Kim/fullstack-gpt")
     # 파일을 올렸으면,
     if file:
         retriever = embed_file(file)
