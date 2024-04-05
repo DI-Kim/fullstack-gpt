@@ -100,14 +100,15 @@ memory = ConversationBufferMemory(return_messages=True)
 st.set_page_config(page_icon="📃", page_title="DocumentGPT")
 st.title("DocumentGPT")
 
-st.session_state["api"] = ""
+if "api" not in st.session_state:
+    st.session_state["api"] = ""
+
 if not st.session_state["api"]:
     with st.sidebar:
         st.session_state["api"] = st.text_input("Write your openAI API Key.")
         st.write(st.session_state["api"])
 
-
-if st.session_state["api"]:
+else:
     llm = ChatOpenAI(
         temperature=0.1,
         streaming=True,
@@ -115,55 +116,55 @@ if st.session_state["api"]:
         openai_api_key=st.session_state["api"],
     )
 
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 You are a helpful assistant. Answer the question using ONLY the following context. If you don't know the answer just say you don't know. DON'T make anything up.
 
-  Context: {context}
+Context: {context}
 """,
-            ),
-            MessagesPlaceholder(variable_name="history"),
-            ("human", "{question}"),
-        ]
-    )
+        ),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{question}"),
+    ]
+)
 
-    st.markdown(
-        """
-  WELCOME
-              
-              Use this chatbot to ask questions to an AI about your files!
-  """
+st.markdown(
+    """
+WELCOME
+          
+          Use this chatbot to ask questions to an AI about your files!
+"""
+)
+with st.sidebar:
+    file = st.file_uploader(
+        "Upload a .txt .pdf or .docx file", type=["pdf", "txt", "docx"]
     )
-    with st.sidebar:
-        file = st.file_uploader(
-            "Upload a .txt .pdf or .docx file", type=["pdf", "txt", "docx"]
+    st.write("repo: https://github.com/DI-Kim/fullstack-gpt")
+
+if file:
+    retriever = embed_file(file)
+    send_message("I'm ready! Ask away!", role="ai", save=False)
+
+    pain_memory_history()
+    paint_history()
+    message = st.chat_input("Ask anything about your file...")
+    if message:
+        send_message(message, "human")
+
+        chain = (
+            {
+                "context": retriever | RunnableLambda(format_docs),
+                "question": RunnablePassthrough(),
+            }
+            | RunnablePassthrough.assign(history=load_memory)
+            | prompt
+            | llm
         )
-        st.write("repo: https://github.com/DI-Kim/fullstack-gpt")
+        with st.chat_message("ai"):
+            invoke_chain(message)
 
-    if file:
-        retriever = embed_file(file)
-        send_message("I'm ready! Ask away!", role="ai", save=False)
-
-        pain_memory_history()
-        paint_history()
-        message = st.chat_input("Ask anything about your file...")
-        if message:
-            send_message(message, "human")
-
-            chain = (
-                {
-                    "context": retriever | RunnableLambda(format_docs),
-                    "question": RunnablePassthrough(),
-                }
-                | RunnablePassthrough.assign(history=load_memory)
-                | prompt
-                | llm
-            )
-            with st.chat_message("ai"):
-                invoke_chain(message)
-
-    else:
-        st.session_state["messages"] = []
+else:
+    st.session_state["messages"] = []
