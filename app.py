@@ -13,8 +13,6 @@ from langchain.memory import ConversationBufferMemory
 
 os.makedirs(f"./.cache/files/", exist_ok=True)
 os.makedirs(f"./.cache/embeddings/", exist_ok=True)
-os.makedirs(f"./..cache/files/", exist_ok=True)
-os.makedirs(f"./..cache/embeddings/", exist_ok=True)
 
 
 class ChatCallbackHandler(BaseCallbackHandler):
