@@ -209,6 +209,22 @@ def split_file(file):
     return docs
 
 
+# * 꿀팁 *
+# docs는 해시할수 없는 parameter이므로 _docs를 사용하여 해시를 하지 않는다.
+# 이때 문제는 _docs는 해시하지 않기 때문에 docs가 바뀌어도 기존에 캐시한 데이터를 가져온다. (docs가 변경되도 데이터가 바뀌지 않음)
+# 따라서 topic이라는 parameter를 추가해줘 변경되게 한다.
+@st.cache_data(show_spinner="Making quiz...")
+def run_quiz_chain(_docs, topic):
+    chain = {"context": questions_chain} | formatting_chain | output_parser
+    return chain.invoke(_docs)
+
+
+@st.cache_data(show_spinner="Searching wikipedia...")
+def wiki_search(term):
+    retriever = WikipediaRetriever(top_k_results=2)
+    return retriever.get_relevant_documents(term)
+
+
 with st.sidebar:
     docs = None
     choice = st.selectbox("Choose what you want to use.", ("File", "Wikipedia Article"))
@@ -222,9 +238,8 @@ with st.sidebar:
     else:
         topic = st.text_input("Search Wikipedia...")
         if topic:
-            retriever = WikipediaRetriever(top_k_results=2)
-            with st.status("Searching wikipedia..."):
-                docs = retriever.get_relevant_documents(topic)
+            docs = wiki_search(topic)
+
 
 if not docs:
     st.markdown(
@@ -237,10 +252,8 @@ if not docs:
     """
     )
 else:
-
     start = st.button("Generate Quiz")
 
     if start:
-        chain = {"context": questions_chain} | formatting_chain | output_parser
-        response = chain.invoke(docs)
+        response = run_quiz_chain(docs, topic if topic else file.name)
         st.write(response)
