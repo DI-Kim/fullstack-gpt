@@ -3,10 +3,9 @@ from langchain.retrievers import WikipediaRetriever
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langchain.prompts import PromptTemplate
 from langchain.callbacks import StreamingStdOutCallbackHandler
 from langchain.schema import BaseOutputParser
-from langchain.schema.runnable import RunnablePassthrough
 import json
 import os
 
@@ -150,28 +149,7 @@ if not docs:
     )
 else:
 
-    def retry():
-        st.write("retry")
-
-    if "correct_answer" not in st.session_state:
-        st.session_state["correct_answer"] = 0
-
-    len_quiz = 0
-    difficulty = st.radio("Select difficulty of questions", ["EASY", "HARD"])
-    if "start" not in st.session_state:
-        st.session_state["start"] = None
-    start = st.button("Generate Quiz")
-    if start:
-        st.session_state["start"] = "start"
-
-    if st.session_state["start"]:
-
-        response = run_quiz_chain(
-            docs, topic if topic else file.name, difficulty
-        ).additional_kwargs["function_call"]["arguments"]
-        response = json.loads(response)
-        # st.write(response["questions"])
-
+    def run_quiz(response):
         with st.form("questions_form"):
             for idx, question in enumerate(response["questions"]):
                 len_quiz = idx + 1
@@ -188,10 +166,32 @@ else:
                 elif value is not None:
                     st.error("WrongWrong")
             st.form_submit_button()
-        if st.session_state["correct_answer"] < len_quiz:
-            st.button("retry", on_click=retry)
+            return len_quiz
+
+    if "correct_answer" not in st.session_state:
+        st.session_state["correct_answer"] = 0
+
+    difficulty = st.radio("Select difficulty of questions", ["EASY", "HARD"])
+    if "start" not in st.session_state:
+        st.session_state["start"] = None
+    start = st.button("Generate Quiz")
+    if start:
+        st.session_state["start"] = "start"
+
+    if st.session_state["start"]:
+
+        response = run_quiz_chain(
+            docs, topic if topic else file.name, difficulty
+        ).additional_kwargs["function_call"]["arguments"]
+        response = json.loads(response)
+
+        len_quiz = run_quiz(response)
 
         st.write(f"{st.session_state['correct_answer']} / {len_quiz}")
-        if st.session_state["correct_answer"] == len_quiz:
+        if st.session_state["correct_answer"] == len_quiz and len_quiz != 0:
             st.balloons()
+        else:
+            if st.button("Retry"):
+                st.write("구현하지 못했습니다 ㅠㅠ")
+
         st.session_state["correct_answer"] = 0
