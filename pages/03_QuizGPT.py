@@ -254,15 +254,16 @@ if not docs:
 else:
     response = run_quiz_chain(docs, topic if topic else file.name)
     with st.form("questions_form"):
-        for question in response["questions"]:
+        for idx, question in enumerate(response["questions"]):
             st.write(question["question"])
             value = st.radio(
                 "Select an option",
                 [answer["answer"] for answer in question["answers"]],
                 index=None,
+                key=f"{idx}_radio",
             )
             if {"answer": value, "correct": True} in question["answers"]:
-                st.success("CorrectCorrectCorrect✅")
+                st.success("Correct✅")
             elif value is not None:
-                st.error("WrongWrong")
+                st.error("Wrong❌")
         st.form_submit_button()
