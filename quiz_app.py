@@ -78,7 +78,9 @@ if not st.session_state["api"]:
 else:
     with st.sidebar:
         st.write(st.session_state["api"])
-        st.write("repo: https://github.com/DI-Kim/fullstack-gpt")
+        st.write(
+            "repo: https://github.com/DI-Kim/fullstack-gpt/blob/c4ea0250053c985f10aaa7f75328b4d063f0ff79/quiz_app.py"
+        )
     llm = ChatOpenAI(
         temperature=0.1,
         streaming=True,
