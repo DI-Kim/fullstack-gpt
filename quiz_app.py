@@ -158,8 +158,13 @@ else:
 
     len_quiz = 0
     difficulty = st.radio("Select difficulty of questions", ["EASY", "HARD"])
-    st.button("Generate Quiz")
-    if difficulty:
+    if "start" not in st.session_state:
+        st.session_state["start"] = None
+    start = st.button("Generate Quiz")
+    if start:
+        st.session_state["start"] = "start"
+
+    if st.session_state["start"]:
 
         response = run_quiz_chain(
             docs, topic if topic else file.name, difficulty
