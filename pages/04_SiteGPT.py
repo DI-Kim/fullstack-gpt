@@ -1,13 +1,21 @@
-from langchain.document_loaders import AsyncChromiumLoader
-from langchain.document_transformers import Html2TextTransformer
+from langchain.document_loaders import SitemapLoader
 import streamlit as st
+
+
+@st.cache_data(show_spinner="Loading website...")
+def load_website(url):
+    loader = SitemapLoader(url)
+    # request 횟수를 조정해(느리게) 웹사이트에서 차단당하는 것을 막을 수 있음.
+    # loader.requests_per_second = 1
+    docs = loader.load()
+    return docs
+
 
 st.set_page_config(
     page_title="SiteGPT",
     page_icon="🖥️",
 )
 
-html2text_transformer = Html2TextTransformer()
 
 st.markdown(
     """
@@ -23,7 +31,8 @@ with st.sidebar:
     url = st.text_input("Write down a URL", placeholder="https://example.com")
 
 if url:
-    loader = AsyncChromiumLoader([url])
-    docs = loader.load()
-    transformed = html2text_transformer.transform_documents(docs)
-    st.write(docs)
+    if ".xml" not in url:
+        with st.sidebar:
+            st.error("Please write down a Sitemap URL")
+    else:
+        docs = load_website(url)
