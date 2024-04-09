@@ -32,6 +32,7 @@ if "api" not in st.session_state:
 if not st.session_state["api"]:
     with st.sidebar:
         st.session_state["api"] = st.text_input("Write your openAI API Key.")
+        st.button("Accept")
 
 else:
     with st.sidebar:
@@ -173,7 +174,7 @@ def load_website(url):
 with st.sidebar:
     url = st.text_input("Write down a URL", placeholder="https://example.com")
 
-if url:
+if url and st.session_state["api"]:
     if ".xml" not in url:
         with st.sidebar:
             st.error("Please write down a Sitemap URL.")
