@@ -161,14 +161,13 @@ if not st.session_state["api"]:
 else:
     llm = ChatOpenAI(
         temperature=0.1,
-        streaming=True,
         openai_api_key=st.session_state["api"],
     )
     with st.sidebar:
         st.write(f'URL: {st.session_state["url"]}')
         st.write(f'API-KEY: {st.session_state["api"]}')
         st.write(
-            "REPO: https://github.com/DI-Kim/fullstack-gpt/blob/c4ea0250053c985f10aaa7f75328b4d063f0ff79/quiz_app.py"
+            "REPO: https://github.com/DI-Kim/fullstack-gpt/blob/a640c28545316ff5a5b4f43bd6b5e2436d38ff6b/site_app.py"
         )
     retriever = load_website(st.session_state["url"])
     query = st.text_input("Ask a question to the website.")
