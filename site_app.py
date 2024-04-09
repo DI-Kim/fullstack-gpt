@@ -7,6 +7,11 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import streamlit as st
 
+#! https://developers.cloudflare.com/sitemap.xml
+# /workers-ai/
+# /ai-gateway/
+# /vectorize/
+
 st.set_page_config(
     page_title="SiteGPT",
     page_icon="🖥️",
@@ -40,9 +45,6 @@ else:
         openai_api_key=st.session_state["api"],
     )
 
-llm = ChatOpenAI(
-    temperature=0.1,
-)
 
 answers_prompt = ChatPromptTemplate.from_template(
     """
@@ -152,12 +154,16 @@ def load_website(url):
         # ex) ^(.*\/blog\/).* 는 /blog/ 가 url에 존재하면 docs에 추가 |  ?! 는 반대의 의미 (부정)
         url,
         parsing_function=parse_page,
-        # filter_urls=[r"^(.*\/blog\/).*"],
-        filter_urls=["https://openai.com/blog/data-partnerships"],
+        filter_urls=[
+            r"^(.*\/workers-ai\/).*",
+            r"^(.*\/ai-gateway\/).*",
+            r"^(.*\/vectorize\/).*",
+        ],
     )
     # request 횟수를 조정해(느리게) 웹사이트에서 차단당하는 것을 막을 수 있음.
     loader.requests_per_second = 2
     docs = loader.load_and_split(text_splitter=splitter)
+    st.write(docs)
     # 임베딩
     vector_store = FAISS.from_documents(docs, OpenAIEmbeddings())
     # return: 임베딩 값을 retiever로 변환
