@@ -43,13 +43,9 @@ answers_prompt = ChatPromptTemplate.from_template(
 def get_answers(inputs):
     docs = inputs["docs"]
     question = inputs["question"]
+    # 유저의 질문에 관해 docs의 인덱스마다 답변과 점수를 달아준다.
     answers_chain = answers_prompt | llm
-    # answers = []
-    # for doc in docs:
-    #     result = answers_chain.invoke(
-    #         {"question": question, "context": doc.page_content}
-    #     )
-    #     answers.append(result.content)
+    # return: 객체 안에 answers라는 큰 리스트와 question이 존재하고, answers의 인덱스는 객체로 이루어져있다.
     return {
         "answers": [
             {
@@ -84,14 +80,17 @@ choose_prompt = ChatPromptTemplate.from_messages(
 def choose_answer(inputs):
     answers = inputs["answers"]
     question = inputs["question"]
+    # get_answers를 통해 나온 return 값의 answers를 condensed로 단순화 및 string화 한다..
     choose_chain = choose_prompt | llm
     condensed = "\n\n".join(
         f"{answer['answer']}\nSource:{answer['source']}\nDate:{answer['date']}"
         for answer in answers
     )
+    # return: choose_chain으로 question과 condensed를 invoke하여, 최종 결과를 도출한다.
     return choose_chain.invoke({"question": question, "answers": condensed})
 
 
+# html의 header와 footer 및 필요없는 문자를 없애고 string화 하여 return 한다.
 def parse_page(soup):
     header = soup.find("header")
     footer = soup.find("footer")
@@ -107,6 +106,7 @@ def parse_page(soup):
     )
 
 
+# splitter를 통해 긴글 자르기, loader를 통해 원하는 url의 데이터만 가져옴
 @st.cache_data(show_spinner="Loading website...")
 def load_website(url):
     splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
@@ -125,7 +125,9 @@ def load_website(url):
     # request 횟수를 조정해(느리게) 웹사이트에서 차단당하는 것을 막을 수 있음.
     loader.requests_per_second = 2
     docs = loader.load_and_split(text_splitter=splitter)
+    # 임베딩
     vector_store = FAISS.from_documents(docs, OpenAIEmbeddings())
+    # return: 임베딩 값을 retiever로 변환
     return vector_store.as_retriever()
 
 
@@ -133,8 +135,6 @@ st.set_page_config(
     page_title="SiteGPT",
     page_icon="🖥️",
 )
-
-
 st.markdown(
     """
     # SiteGPT
@@ -145,6 +145,7 @@ st.markdown(
 """
 )
 
+
 with st.sidebar:
     url = st.text_input("Write down a URL", placeholder="https://example.com")
 
@@ -154,8 +155,13 @@ if url:
             st.error("Please write down a Sitemap URL.")
     else:
         retriever = load_website(url)
+        # 물어볼 질문 입력 칸
         query = st.text_input("Ask a question to the website.")
         if query:
+            # docs: url의 텍스트를 임베딩하고, retriever를 진행한 데이터
+            # question: query와 같음
+            # get_answers: {answers: [{}, {}, ...], question: question}
+            # choose_answer: invoke(get_answers return value)
             chain = (
                 {
                     "docs": retriever,
@@ -164,6 +170,6 @@ if url:
                 | RunnableLambda(get_answers)
                 | RunnableLambda(choose_answer)
             )
-
             result = chain.invoke(query)
+            # $ 표시가 이상하게 나오므로 \$로 치환
             st.write(result.content.replace("$", "\$"))
