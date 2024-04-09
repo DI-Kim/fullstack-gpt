@@ -29,6 +29,7 @@ st.markdown(
     Start by writing the URL of the website on the sidebar.
 """
 )
+url = None
 
 if "api" not in st.session_state:
     st.session_state["api"] = ""
@@ -176,7 +177,7 @@ def load_website(url):
     return vector_store.as_retriever()
 
 
-if url and st.session_state["api"]:
+if url and "api" in st.session_state:
     if ".xml" not in url:
         with st.sidebar:
             st.error("Please write down a Sitemap URL.")
