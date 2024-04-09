@@ -7,9 +7,6 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import streamlit as st
 
-# import os
-
-# os.environ["OPENAI_API_KEY"] = "dummy_key"
 
 #! https://developers.cloudflare.com/sitemap.xml
 # /workers-ai/
@@ -29,28 +26,6 @@ st.markdown(
     Start by writing the URL of the website on the sidebar.
 """
 )
-url = None
-
-if "api" not in st.session_state:
-    st.session_state["api"] = ""
-
-if not st.session_state["api"]:
-    with st.sidebar:
-        st.session_state["api"] = st.text_input("Write your openAI API Key.")
-        st.button("Accept")
-
-else:
-    llm = ChatOpenAI(
-        temperature=0.1,
-        streaming=True,
-        openai_api_key=st.session_state["api"],
-    )
-    with st.sidebar:
-        st.write(st.session_state["api"])
-        st.write(
-            "repo: https://github.com/DI-Kim/fullstack-gpt/blob/c4ea0250053c985f10aaa7f75328b4d063f0ff79/quiz_app.py"
-        )
-        url = st.text_input("Write down a URL", placeholder="https://example.com")
 
 
 answers_prompt = ChatPromptTemplate.from_template(
@@ -85,9 +60,7 @@ answers_prompt = ChatPromptTemplate.from_template(
 def get_answers(inputs):
     docs = inputs["docs"]
     question = inputs["question"]
-    # 유저의 질문에 관해 docs의 인덱스마다 답변과 점수를 달아준다.
     answers_chain = answers_prompt | llm
-    # return: 객체 안에 answers라는 큰 리스트와 question이 존재하고, answers의 인덱스는 객체로 이루어져있다.
     return {
         "answers": [
             {
@@ -122,17 +95,14 @@ choose_prompt = ChatPromptTemplate.from_messages(
 def choose_answer(inputs):
     answers = inputs["answers"]
     question = inputs["question"]
-    # get_answers를 통해 나온 return 값의 answers를 condensed로 단순화 및 string화 한다..
     choose_chain = choose_prompt | llm
     condensed = "\n\n".join(
         f"{answer['answer']}\nSource:{answer['source']}\nDate:{answer['date']}"
         for answer in answers
     )
-    # return: choose_chain으로 question과 condensed를 invoke하여, 최종 결과를 도출한다.
     return choose_chain.invoke({"question": question, "answers": condensed})
 
 
-# html의 header와 footer 및 필요없는 문자를 없애고 string화 하여 return 한다.
 def parse_page(soup):
     header = soup.find("header")
     footer = soup.find("footer")
@@ -148,7 +118,6 @@ def parse_page(soup):
     )
 
 
-# splitter를 통해 긴글 자르기, loader를 통해 원하는 url의 데이터만 가져옴
 @st.cache_data(show_spinner="Loading website...")
 def load_website(url):
     splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
@@ -156,9 +125,6 @@ def load_website(url):
         chunk_overlap=200,
     )
     loader = SitemapLoader(
-        # filter_urls를 통해 원하는 site만 docs에 넣을 수 있음
-        # 정규표현식을 이용해서 원하는 url만 가져올 수 있음.
-        # ex) ^(.*\/blog\/).* 는 /blog/ 가 url에 존재하면 docs에 추가 |  ?! 는 반대의 의미 (부정)
         url,
         parsing_function=parse_page,
         filter_urls=[
@@ -167,37 +133,53 @@ def load_website(url):
             r"^(.*\/vectorize\/).*",
         ],
     )
-    # request 횟수를 조정해(느리게) 웹사이트에서 차단당하는 것을 막을 수 있음.
     loader.requests_per_second = 2
     docs = loader.load_and_split(text_splitter=splitter)
     st.write(docs)
-    # 임베딩
     vector_store = FAISS.from_documents(docs, OpenAIEmbeddings())
-    # return: 임베딩 값을 retiever로 변환
     return vector_store.as_retriever()
 
 
-if url and "api" in st.session_state:
-    if ".xml" not in url:
-        with st.sidebar:
-            st.error("Please write down a Sitemap URL.")
-    else:
-        retriever = load_website(url)
-        # 물어볼 질문 입력 칸
-        query = st.text_input("Ask a question to the website.")
-        if query:
-            # docs: url의 텍스트를 임베딩하고, retriever를 진행한 데이터
-            # question: query와 같음
-            # get_answers: {answers: [{}, {}, ...], question: question}
-            # choose_answer: invoke(get_answers return value)
-            chain = (
-                {
-                    "docs": retriever,
-                    "question": RunnablePassthrough(),
-                }
-                | RunnableLambda(get_answers)
-                | RunnableLambda(choose_answer)
-            )
-            result = chain.invoke(query)
-            # $ 표시가 이상하게 나오므로 \$로 치환
-            st.write(result.content.replace("$", "\$"))
+if "api" not in st.session_state:
+    st.session_state["api"] = ""
+
+if "url" not in st.session_state:
+    st.session_state["url"] = ""
+
+if not st.session_state["api"]:
+    with st.sidebar:
+        st.write("Please write in order")
+        st.session_state["url"] = st.text_input(
+            "1. Write down a URL", placeholder="https://example.com"
+        )
+        st.session_state["api"] = st.text_input("2. Write your openAI API Key.")
+        if ".xml" not in st.session_state["url"] and "url" not in st.session_state:
+            with st.sidebar:
+                st.error("Please write down a Sitemap URL.")
+        st.button("Accept")
+
+else:
+    llm = ChatOpenAI(
+        temperature=0.1,
+        streaming=True,
+        openai_api_key=st.session_state["api"],
+    )
+    with st.sidebar:
+        st.write(f'URL: {st.session_state["url"]}')
+        st.write(f'API-KEY: {st.session_state["api"]}')
+        st.write(
+            "REPO: https://github.com/DI-Kim/fullstack-gpt/blob/c4ea0250053c985f10aaa7f75328b4d063f0ff79/quiz_app.py"
+        )
+    retriever = load_website(st.session_state["url"])
+    query = st.text_input("Ask a question to the website.")
+    if query:
+        chain = (
+            {
+                "docs": retriever,
+                "question": RunnablePassthrough(),
+            }
+            | RunnableLambda(get_answers)
+            | RunnableLambda(choose_answer)
+        )
+        result = chain.invoke(query)
+        st.write(result.content.replace("$", "\$"))
