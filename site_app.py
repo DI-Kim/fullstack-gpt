@@ -6,9 +6,10 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import streamlit as st
-import os
 
-os.environ["OPENAI_API_KEY"] = "dummy_key"
+# import os
+
+# os.environ["OPENAI_API_KEY"] = "dummy_key"
 
 #! https://developers.cloudflare.com/sitemap.xml
 # /workers-ai/
@@ -38,16 +39,16 @@ if not st.session_state["api"]:
         st.button("Accept")
 
 else:
-    with st.sidebar:
-        st.write(st.session_state["api"])
-        st.write(
-            "repo: https://github.com/DI-Kim/fullstack-gpt/blob/c4ea0250053c985f10aaa7f75328b4d063f0ff79/quiz_app.py"
-        )
     llm = ChatOpenAI(
         temperature=0.1,
         streaming=True,
         openai_api_key=st.session_state["api"],
     )
+    with st.sidebar:
+        st.write(st.session_state["api"])
+        st.write(
+            "repo: https://github.com/DI-Kim/fullstack-gpt/blob/c4ea0250053c985f10aaa7f75328b4d063f0ff79/quiz_app.py"
+        )
 
 
 answers_prompt = ChatPromptTemplate.from_template(
