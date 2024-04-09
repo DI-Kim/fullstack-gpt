@@ -49,6 +49,7 @@ else:
         st.write(
             "repo: https://github.com/DI-Kim/fullstack-gpt/blob/c4ea0250053c985f10aaa7f75328b4d063f0ff79/quiz_app.py"
         )
+        url = st.text_input("Write down a URL", placeholder="https://example.com")
 
 
 answers_prompt = ChatPromptTemplate.from_template(
@@ -174,9 +175,6 @@ def load_website(url):
     # return: 임베딩 값을 retiever로 변환
     return vector_store.as_retriever()
 
-
-with st.sidebar:
-    url = st.text_input("Write down a URL", placeholder="https://example.com")
 
 if url and st.session_state["api"]:
     if ".xml" not in url:
