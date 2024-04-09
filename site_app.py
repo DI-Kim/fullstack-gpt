@@ -6,6 +6,9 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import streamlit as st
+import os
+
+os.environ["OPENAI_API_KEY"] = "dummy_key"
 
 #! https://developers.cloudflare.com/sitemap.xml
 # /workers-ai/
