@@ -1,18 +1,3 @@
-"""
-1. 어시스턴트를 생성하고, 생성된 아이디를 계속 사용한다.
-2. get_run 함수의 completed 상태를 주기적으로 확인하여 대화형식으로 만든다.
-"""
-
-# 작업 순서
-# 1. api 받기
-# 2. 어시스턴트 생성
-# 3. 스레드 생성
-# 4. 런
-# 5. 관련 함수 만들기
-# 6. submit_tool_outputs로 정보 생성
-# 7. get_run으로 상태 확인
-# 8. completed 시 get_messages
-
 from langchain.utilities.duckduckgo_search import DuckDuckGoSearchAPIWrapper
 import yfinance
 import json
@@ -142,8 +127,8 @@ def get_messages(thread_id):
     messages = list(messages)
     messages.reverse()
     for message in messages:
-        st.write(message.role)
-        st.write(message.content[0].text.value.replace("$", "\$"))
+        with st.chat_message(message.role):
+            st.markdown(message.content[0].text.value.replace("$", "\$"))
 
 
 def get_tool_outputs(run_id, thread_id):
@@ -180,9 +165,15 @@ if not st.session_state["api"]:
 else:
     with st.sidebar:
         st.write(f'API-KEY: {st.session_state["api"]}')
+        st.write(
+            "REPO: https://github.com/DI-Kim/fullstack-gpt/commit/4f3374e90717311a892f00fbfa3a545a1d45b234"
+        )
     client.api_key = st.session_state["api"]
+
     if "assistant_id" not in st.session_state:
         st.session_state["assistant_id"] = ""
+    if "thread" not in st.session_state:
+        st.session_state["thread"] = None
     #! 어시스턴트 생성 전
     if st.session_state["assistant_id"] == "":
         # assistant = client.beta.assistants.create(
@@ -192,38 +183,55 @@ else:
         #     tools=functions,
         # )
         #! 생성 후 id 저장
-        # assistant_id = assistant.id
-        assistant_id = "asst_sNRfGqBlfUQnarB6j5clyGxW"
-
-    content = st.text_input("Write...")
+        # st.session_state['assistant_id'] = assistant.id
+        st.session_state["assistant_id"] = "asst_sNRfGqBlfUQnarB6j5clyGxW"
+    st.markdown(
+        """
+    WELCOME
+              
+              Use this chatbot to ask for information about the company you are curious about!
+    """
+    )
+    thread = None
+    if st.session_state["thread"] is not None:
+        content = st.chat_input("Write...")
+        send_message(st.session_state["thread"].id, content)
+    else:
+        content = st.chat_input("Write...")
+        #! 스레드 생성
+        if content:
+            st.session_state["thread"] = client.beta.threads.create(
+                messages=[
+                    {
+                        "role": "user",
+                        # "content": "I want to know if the Salesforce stock is a good buy",
+                        "content": content,
+                    }
+                ]
+            )
 
     if content:
-        #! 스레드 생성
-        thread = client.beta.threads.create(
-            messages=[
-                {
-                    "role": "user",
-                    # "content": "I want to know if the Salesforce stock is a good buy",
-                    "content": content,
-                }
-            ]
-        )
-
         #! 런 생성
         run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=assistant_id,
+            thread_id=st.session_state["thread"].id,
+            assistant_id=st.session_state["assistant_id"],
         )
 
-        while get_run(run.id, thread.id).status != "completed":
+        while get_run(run.id, st.session_state["thread"].id).status != "completed":
             with st.spinner("Loading..."):
-                while get_run(run.id, thread.id).status == "in_progress":
+                while (
+                    get_run(run.id, st.session_state["thread"].id).status
+                    == "in_progress"
+                ):
                     time.sleep(1)
-            st.success(get_run(run.id, thread.id).status)
-            if get_run(run.id, thread.id).status == "requires_action":
-                submit_tool_outputs(run.id, thread.id)
+            st.success(get_run(run.id, st.session_state["thread"].id).status)
+            if (
+                get_run(run.id, st.session_state["thread"].id).status
+                == "requires_action"
+            ):
+                submit_tool_outputs(run.id, st.session_state["thread"].id)
 
-        get_messages(thread.id)
+        get_messages(st.session_state["thread"].id)
 
     #! 메세지 받기
     # get_messages(thread.id)
