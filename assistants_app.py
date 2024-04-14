@@ -4,6 +4,9 @@ import json
 import openai as client
 import streamlit as st
 import time
+from pydantic import BaseModel, Field
+from langchain.tools import BaseTool, DuckDuckGoSearchResults
+from typing import Type
 
 
 def get_ticker(inputs):
@@ -36,6 +39,7 @@ functions_map = {
     "get_balance_sheet": get_balance_sheet,
     "get_daily_stock_performance": get_daily_stock_performance,
 }
+
 
 functions = [
     {
@@ -176,15 +180,15 @@ else:
         st.session_state["thread"] = None
     #! 어시스턴트 생성 전
     if st.session_state["assistant_id"] == "":
-        # assistant = client.beta.assistants.create(
-        #     name="Investor Assistant",
-        #     instructions="You help users do research on publicly traded companies and you help users decide if they should buy the stock or not.",
-        #     model="gpt-4-1106-preview",
-        #     tools=functions,
-        # )
-        #! 생성 후 id 저장
-        # st.session_state['assistant_id'] = assistant.id
-        st.session_state["assistant_id"] = "asst_sNRfGqBlfUQnarB6j5clyGxW"
+        assistant = client.beta.assistants.create(
+            name="Investor Assistant",
+            instructions="You help users do research on publicly traded companies and you help users decide if they should buy the stock or not.",
+            model="gpt-4-1106-preview",
+            tools=functions,
+        )
+        # ! 생성 후 id 저장
+        st.session_state["assistant_id"] = assistant.id
+        # st.session_state["assistant_id"] = "asst_sNRfGqBlfUQnarB6j5clyGxW"
     st.markdown(
         """
     WELCOME
@@ -204,7 +208,6 @@ else:
                 messages=[
                     {
                         "role": "user",
-                        # "content": "I want to know if the Salesforce stock is a good buy",
                         "content": content,
                     }
                 ]
@@ -232,12 +235,3 @@ else:
                 submit_tool_outputs(run.id, st.session_state["thread"].id)
 
         get_messages(st.session_state["thread"].id)
-
-    #! 메세지 받기
-    # get_messages(thread.id)
-
-#! 런 상태 확인 (complete시 메시지 출력)
-# get_run(run.id, thread.id).status
-
-#! 메세지 보내기
-# send_message(thread.id, "Go ahead")
