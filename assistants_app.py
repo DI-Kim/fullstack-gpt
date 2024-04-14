@@ -170,7 +170,7 @@ else:
     with st.sidebar:
         st.write(f'API-KEY: {st.session_state["api"]}')
         st.write(
-            "REPO: https://github.com/DI-Kim/fullstack-gpt/commit/4f3374e90717311a892f00fbfa3a545a1d45b234"
+            "REPO: https://github.com/DI-Kim/fullstack-gpt/blob/12c8df2a80582f559e0ef56dea2fd3730ca12eea/assistants_app.py"
         )
     client.api_key = st.session_state["api"]
 
@@ -188,7 +188,6 @@ else:
         )
         # ! 생성 후 id 저장
         st.session_state["assistant_id"] = assistant.id
-        # st.session_state["assistant_id"] = "asst_sNRfGqBlfUQnarB6j5clyGxW"
     st.markdown(
         """
     WELCOME
